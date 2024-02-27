@@ -1,0 +1,28 @@
+input {
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-forescout"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-forescout"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+}
+
+output {
+  # stdout { codec => rubydebug }
+   elasticsearch {
+   hosts => ["localhost:9200","localhost:9200","localhost:9200","localhost:9200","localhost:9200"]
+   data_stream => "true"
+   data_stream_type => "logs"
+   data_stream_dataset => "syslog-forescout"
+   data_stream_namespace => "usar-korea"
+   api_key => "${api_key}"
+   ssl => "true"
+   cacert => "/etc/logstash/chain.pem"
+   }
+}

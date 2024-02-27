@@ -1,0 +1,101 @@
+input {
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["bluecoat-parsed"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-bluecoat"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+}
+filter {
+  mutate {
+    copy => { "@timestamp" => "[event][ingested]" }
+  }
+ 
+  date {
+    match => [ "[@metadata][kafka][timestamp]", "UNIX", "UNIX_MS", "ISO8601" ]
+    timezone => "UTC"
+    target => "[event][created]"
+  }
+ 
+  mutate {
+    copy => { "[message]" => "[event][original]" }
+  }
+ 
+  mutate {
+    gsub => [ '[event][original]', '^\{"fieldTypes":\{.*"fieldData":\{', '{"fieldData":{' ]
+  }
+ 
+  mutate {
+    add_field => { "ts" => "%{[fieldData][date][year]}-%{[fieldData][date][monthValue]}-%{[fieldData][date][dayOfMonth]}T%{[fieldData][time][hour]}:%{[fieldData][time][minute]}:%{[fieldData][time][second]}" }
+    remove_field => [ "[fieldData][date][year]", "[fieldData][date][monthValue]", "[fieldData][date][dayOfMonth]", "[fieldData][time][hour]", "[fieldData][time][minute]", "[fieldData][time][second]" ]
+  }
+ 
+  date {
+    match => ["ts", "ISO8601"]
+    timezone => "UTC"
+    remove_field => ["[ts]"]
+  }
+  
+  mutate {
+    rename => {
+      "[fieldData][c-ip]"                                         => "[source][ip]"
+      "[fieldData][c-port]"                                       => "[source][port]"
+      "[fieldData][cs-ip]"                                        => "[bluecoat][cs][ip]"
+      "[fieldData][sc-status]"                                    => "[bluecoat][sc][status]"
+      "[fieldData][s-action]"                                     => "[bluecoat][s][action]"
+      "[fieldData][sc-bytes]"                                     => "[destination][bytes]"
+      "[fieldData][cs-bytes]"                                     => "[source][bytes]"
+      "[fieldData][cs-method]"                                    => "[http][request][method]"
+      "[fieldData][cs-uri-scheme]"                                => "[url][scheme]"
+      "[fieldData][cs-host]"                                      => "[url][domain]"
+      "[fieldData][cs-uri-port]"                                  => "[destination][port]"
+      "[fieldData][cs-uri-path]"                                  => "[url][path]"
+      "[fieldData][cs-uri-query]"                                 => "[url][query]"
+      "[fieldData][cs-username]"                                  => "[user][name]"
+      "[fieldData][cs-auth-group]"                                => "[user][group][name]"
+      "[fieldData][s-supplier-name]"                              => "[bluecoat][s][supplier][name]"
+      "[fieldData][s-supplier-ip]"                                => "[destination][address]"
+      "[fieldData][s-supplier-country]"                           => "[bluecoat][s][supplier][country]"
+      "[fieldData][s-supplier-failures]"                          => "[bluecoat][s][supplier][failures]"
+      "[fieldData][rs(Content-Type)]"                             => "[http][response][mime_type]"
+      "[fieldData][rs(Referer)]"                                  => "[bluecoat][rs][referer]"
+      "[fieldData][cs(User-Agent)]"                               => "[user_agent][original]"
+      "[fieldData][sc-filter-result]"                             => "[event][action]"
+      "[fieldData][cs-categories]"                                => "[bluecoat][cs][categories]"
+      "[fieldData][x-virus-id]"                                   => "[bluecoat][x][virus_id]"
+      "[fieldData][s-ip]"                                         => "[observer][ip]"
+      "[fieldData][cs-threat-risk]"                               => "[bluecoat][cs][threat_risk]"
+      "[fieldData][x-bluecoat-transaction-uuid]"                  => "[transaction][id]"
+      "[fieldData][x-icap-reqmod-header(X-ICAP-Metadata)]"        => "[bluecoat][x][icap][request][header]"
+      "[fieldData][x-icap-respmod-header(X-ICAP-Metadata)]"       => "[bluecoat][x][icap][response][header]"
+    }
+  }
+ 
+  mutate {
+    remove_field => [ "[message]", "[fieldTypes]", "[fieldData][time]", "[fieldData][date]" ]
+  }
+}
+
+
+
+output {
+#   file { path => "/var/log/logstash/bluecoat-%{+YYYY-MM-dd}.txt" }
+#   stdout { codec => rubydebug }
+   elasticsearch {
+   hosts => ["localhost:9200","localhost:9200","localhost:9200","localhost:9200","localhost:9200"]
+   data_stream => "true"
+   data_stream_type => "logs"
+   data_stream_dataset => "bluecoat_proxysg.log"
+   data_stream_namespace => "usar-korea"
+   api_key => "${api_key}"
+   ssl => "true"
+   cacert => "/etc/logstash/chain.pem"
+   codec => json
+   }
+}

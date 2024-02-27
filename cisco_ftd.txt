@@ -1,0 +1,154 @@
+input {
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ftd-walker"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ftd-humphreys"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ips-hump-gef"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ips-hump-icc-1417"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ips-hump-icc-6310"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ips-walk-gef"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-ips-walk-icc"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-vpn-walk"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+
+    kafka {
+    bootstrap_servers => "localhost:9091,localhost:9091,localhost:9091,localhost:9091,localhost:9091"
+    topics_pattern => ["syslog-vpn-hump"]
+    group_id => "rcc-logstash"
+    client_id => "rcc-syslog-ftd"
+    security_protocol => "SSL"
+    # sasl_mechanism => "SCRAM-SHA-512"
+    codec => json
+    ssl_truststore_location => "/etc/logstash/logstash.truststore"
+    ssl_truststore_password => "${pki_pass}"
+    #sasl_jaas_config => "${SASL_JAAS_CONFIG}"
+    }
+}
+
+filter {
+    mutate {
+    remove_field => ["host", "[event][original]" ]
+    rename => {
+    "[rawMessage]" => "[message]"
+    }
+    remove_field => ["[facility]", "[name]", "[timestamp]", "[type]", "[remoteAddress]", "[level]"]
+
+    }
+}
+
+output {
+  #stdout { codec => rubydebug }
+   #if parsing failure occurs
+   if "mapper_parsing_exception" in [tags] {
+   elasticsearch {
+   hosts => ["localhost:9200","localhost:9200","localhost:9200","localhost:9200","localhost:9200"]
+   index => "cisco_ftd_parse_failure_index"
+   api_key => "${api_key}"
+#   api_key => "2DJnAIkBxPFFaT3y0h_U:PqAQ9CS5SOWKS7CkO8E4vw"
+   ssl => "true"
+   cacert => "/etc/logstash/chain.pem"
+   } 
+ } else {
+   elasticsearch {
+   hosts => ["localhost:9200","localhost:9200","localhost:9200","localhost:9200","localhost:9200"]
+   data_stream => "true"
+   data_stream_type => "logs"
+   data_stream_dataset => "cisco_ftd.log"
+   data_stream_namespace => "usar-korea"
+   api_key => "${api_key}"
+   ssl => "true"
+   cacert => "/etc/logstash/chain.pem"
+   }
+ }
+}
